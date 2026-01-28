@@ -56,8 +56,8 @@ class EditorWindow(QWidget):
 
         # 让编辑页也与展示页一致：无边框 + 半透明 + 圆角容器
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
-        self.setWindowOpacity(0.95)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setWindowOpacity(1.0)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
 
     def closeEvent(self, event) -> None:
         event.accept()
@@ -201,7 +201,7 @@ class EditorWindow(QWidget):
         self.setStyleSheet(
             """
             QWidget#container {
-                background: rgba(20, 20, 20, 205);
+                background: rgb(20, 20, 20);
                 border: 1px solid rgba(255, 255, 255, 30);
                 border-radius: 14px;
             }
@@ -250,6 +250,9 @@ class EditorWindow(QWidget):
                 padding: 6px;
                 color: rgba(255,255,255,220);
             }
+            QListWidget#taskList::item {
+                padding: 6px 6px;
+            }
 
             QPushButton#btn {
                 color: rgba(255,255,255,225);
@@ -282,25 +285,82 @@ class EditorWindow(QWidget):
             """
         )
 
+    def _dialog_stylesheet(self) -> str:
+        return (
+            """
+            QDialog {
+                background: white;
+                color: black;
+            }
+            QLabel {
+                color: black;
+            }
+            QLineEdit, QPlainTextEdit, QTextEdit {
+                background: #f2f2f2;
+                color: black;
+                border: 1px solid #1a1a1a;
+                border-radius: 8px;
+                padding: 6px;
+            }
+            QPushButton {
+                background: #f7f7f7;
+                color: black;
+                border: 1px solid #1a1a1a;
+                border-radius: 8px;
+                padding: 6px 12px;
+            }
+            QPushButton:hover {
+                background: #e6e6e6;
+            }
+            """
+        )
+
+    def _show_message(self, title: str, text: str, icon: QMessageBox.Icon) -> None:
+        box = QMessageBox(self)
+        box.setIcon(icon)
+        box.setWindowTitle(title)
+        box.setText(text)
+        box.setStyleSheet(self._dialog_stylesheet())
+        box.exec()
+
+    def _show_info(self, title: str, text: str) -> None:
+        self._show_message(title, text, QMessageBox.Icon.Information)
+
+    def _show_warning(self, title: str, text: str) -> None:
+        self._show_message(title, text, QMessageBox.Icon.Warning)
+
+    def _prompt_api_key(self, current: str) -> Optional[str]:
+        dialog = QInputDialog(self)
+        dialog.setInputMode(QInputDialog.InputMode.TextInput)
+        dialog.setTextEchoMode(QLineEdit.EchoMode.Password)
+        dialog.setWindowTitle("设置 API Key")
+        dialog.setLabelText("请输入 SiliconFlow API Key：")
+        dialog.setTextValue(current)
+        dialog.setStyleSheet(self._dialog_stylesheet())
+        if dialog.exec():
+            return dialog.textValue()
+        return None
+
     # -------------------------
     # (下面保留你原来的逻辑：假 AI、任务增删、右键菜单、发布弹窗等)
     # -------------------------
     def _on_ai_summarize(self) -> None:
         raw = self.txt_raw.toPlainText().strip()
         if not raw:
-            QMessageBox.information(self, "提示", "请先在左侧输入一些想法，再进行 AI 总结。")
+            self._show_info("提示", "请先在左侧输入一些想法，再进行 AI 总结。")
             return
 
         api_key = load_api_key()
         if not api_key:
-            QMessageBox.warning(self, "需要 API Key", "请先点击“设置 API Key”输入并保存你的密钥。")
+            self._show_warning("需要 API Key", "请先点击“设置 API Key”输入并保存你的密钥。")
             return
 
         self.btn_ai.setEnabled(False)
         progress = QProgressDialog("AI 总结中，请稍候…", None, 0, 0, self)
         progress.setWindowTitle("AI 总结")
-        progress.setWindowModality(Qt.WindowModality.ApplicationModal)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setCancelButton(None)
+        progress.setStyleSheet(self._dialog_stylesheet())
         progress.show()
         QApplication.processEvents()
 
@@ -317,27 +377,22 @@ class EditorWindow(QWidget):
             )
             self.tabs.setCurrentIndex(0)
         except Exception as exc:
-            QMessageBox.warning(self, "AI 总结失败", f"模型返回或解析失败：{exc}")
+            self._show_warning("AI 总结失败", f"模型返回或解析失败：{exc}")
         finally:
             progress.close()
             self.btn_ai.setEnabled(True)
 
     def _on_set_api_key(self) -> None:
         current = load_api_key() or ""
-        api_key, ok = QInputDialog.getText(
-            self,
-            "设置 API Key",
-            "请输入 SiliconFlow API Key：",
-            echo=QLineEdit.EchoMode.Password,
-            text=current,
-        )
-        if ok:
-            key = api_key.strip()
-            if not key:
-                QMessageBox.warning(self, "无效 API Key", "API Key 不能为空。")
-                return
-            save_api_key(key)
-            QMessageBox.information(self, "已保存", "API Key 已保存到本地。")
+        api_key = self._prompt_api_key(current)
+        if api_key is None:
+            return
+        key = api_key.strip()
+        if not key:
+            self._show_warning("无效 API Key", "API Key 不能为空。")
+            return
+        save_api_key(key)
+        self._show_info("已保存", "API Key 已保存到本地。")
 
     def _load_tasks(self, tasks: List[Task]) -> None:
         self.list_tasks.clear()

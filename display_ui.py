@@ -226,6 +226,8 @@ class DisplayWindow(QWidget):
             """
         )
 
+        self.row_collapsed.setFixedHeight(self.row_collapsed.sizeHint().height())
+
     # -------------------------
     # interactions
     # -------------------------
