@@ -3,14 +3,14 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import List, Optional, Tuple
 
 from openai import OpenAI
 
+from storage import get_api_key_path
+
 API_BASE_URL = "https://api.siliconflow.cn/v1"
 MODEL_NAME = "deepseek-ai/DeepSeek-V3.2"
-API_KEY_PATH = Path(__file__).resolve().parent / "apikey.json"
 
 SYSTEM_PROMPT = (
     "你是一个任务拆解助手。\n\n"
@@ -42,10 +42,11 @@ class TaskPayload:
 
 
 def load_api_key() -> Optional[str]:
-    if not API_KEY_PATH.exists():
+    api_key_path = get_api_key_path()
+    if not api_key_path.exists():
         return None
     try:
-        data = json.loads(API_KEY_PATH.read_text(encoding="utf-8"))
+        data = json.loads(api_key_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return None
     key = data.get("api_key") if isinstance(data, dict) else None
@@ -53,9 +54,13 @@ def load_api_key() -> Optional[str]:
 
 
 def save_api_key(api_key: str) -> None:
-    API_KEY_PATH.write_text(json.dumps({"api_key": api_key}, ensure_ascii=False, indent=2), encoding="utf-8")
+    api_key_path = get_api_key_path()
+    api_key_path.write_text(
+        json.dumps({"api_key": api_key}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     try:
-        os.chmod(API_KEY_PATH, 0o600)
+        os.chmod(api_key_path, 0o600)
     except OSError:
         pass
 

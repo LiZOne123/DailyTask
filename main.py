@@ -1,13 +1,13 @@
 import json
 import sys
 from datetime import date
-from pathlib import Path
 from typing import List
 
 from PyQt6.QtWidgets import QApplication
 
 from display_ui import DisplayWindow, Task
 from editor_ui import EditorWindow
+from storage import get_archive_dir
 
 
 class AppController:
@@ -81,8 +81,7 @@ def main() -> None:
 
 
 def _load_today_tasks() -> List[Task]:
-    archive_dir = Path(__file__).resolve().parent / "archive"
-    archive_path = archive_dir / f"{date.today().isoformat()}.json"
+    archive_path = get_archive_dir() / f"{date.today().isoformat()}.json"
     if not archive_path.exists():
         return []
     try:
