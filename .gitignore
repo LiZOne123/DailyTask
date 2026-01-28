@@ -1,2 +1,5 @@
 archive/
 apikey.json
+build/
+dist/
+main.spec
