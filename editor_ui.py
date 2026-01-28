@@ -53,11 +53,9 @@ class EditorWindow(QWidget):
     def _init_window(self) -> None:
         self.setWindowTitle("今日任务 · 编辑")
         self.resize(980, 640)
-
-        # 让编辑页也与展示页一致：无边框 + 半透明 + 圆角容器
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
         self.setWindowOpacity(1.0)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
 
     def closeEvent(self, event) -> None:
         event.accept()
