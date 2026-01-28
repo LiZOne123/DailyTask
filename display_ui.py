@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMenu,
+    QStackedLayout,
 )
 
 
@@ -80,7 +81,7 @@ class DisplayWindow(QWidget):
         self.setWindowOpacity(0.90)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
 
-        self.resize(560, 150)
+        self.setFixedWidth(560)
         self.move(40, 40)
 
     def _apply_topmost(self, enabled: bool) -> None:
@@ -106,7 +107,9 @@ class DisplayWindow(QWidget):
         layout.setSpacing(10)
 
         # header row
-        header = QHBoxLayout()
+        self.header_widget = QWidget()
+        header = QHBoxLayout(self.header_widget)
+        header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(8)
 
         self.lbl_title = QLabel("今日任务")
@@ -172,9 +175,14 @@ class DisplayWindow(QWidget):
         # sync order after drag
         self.list_tasks.model().rowsMoved.connect(lambda *_: self._sync_order_from_list())
 
-        layout.addLayout(header)
-        layout.addWidget(self.row_collapsed)
-        layout.addWidget(self.list_tasks)
+        self.content_area = QWidget()
+        self.content_stack = QStackedLayout(self.content_area)
+        self.content_stack.setContentsMargins(0, 0, 0, 0)
+        self.content_stack.addWidget(self.row_collapsed)
+        self.content_stack.addWidget(self.list_tasks)
+
+        layout.addWidget(self.header_widget)
+        layout.addWidget(self.content_area)
 
         self.setStyleSheet(
             """
@@ -226,7 +234,10 @@ class DisplayWindow(QWidget):
             """
         )
 
+        self.header_widget.setFixedHeight(self.header_widget.sizeHint().height())
         self.row_collapsed.setFixedHeight(self.row_collapsed.sizeHint().height())
+        self._collapsed_content_height = self.row_collapsed.sizeHint().height()
+        self._expanded_content_height = 220
 
     # -------------------------
     # interactions
@@ -244,11 +255,12 @@ class DisplayWindow(QWidget):
 
     def _apply_collapsed(self, collapsed: bool) -> None:
         self._collapsed = collapsed
-        self.row_collapsed.setVisible(collapsed)
-        self.list_tasks.setVisible(not collapsed)
+        self.content_stack.setCurrentWidget(self.row_collapsed if collapsed else self.list_tasks)
+        self.content_area.setFixedHeight(
+            self._collapsed_content_height if collapsed else self._expanded_content_height
+        )
         self.btn_expand.setText("展开" if collapsed else "收起")
-
-        self.resize(self.width(), 150 if collapsed else 340)
+        self.adjustSize()
 
     # -------------------------
     # task logic
