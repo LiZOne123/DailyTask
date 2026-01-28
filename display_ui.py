@@ -17,7 +17,9 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMenu,
-    QStackedLayout,
+    QStackedWidget,
+    QSizePolicy,
+    QLayout,
 )
 
 
@@ -100,6 +102,7 @@ class DisplayWindow(QWidget):
 
         root = QVBoxLayout(self)
         root.setContentsMargins(10, 10, 10, 10)
+        root.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
         root.addWidget(self.container)
 
         layout = QVBoxLayout(self.container)
@@ -168,6 +171,7 @@ class DisplayWindow(QWidget):
         self.list_tasks.setObjectName("taskList")
         self.list_tasks.setDragDropMode(QListWidget.DragDropMode.InternalMove)
         self.list_tasks.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self.list_tasks.setMinimumHeight(0)
 
         self.list_tasks.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_tasks.customContextMenuRequested.connect(self._open_task_context_menu)
@@ -175,14 +179,13 @@ class DisplayWindow(QWidget):
         # sync order after drag
         self.list_tasks.model().rowsMoved.connect(lambda *_: self._sync_order_from_list())
 
-        self.content_area = QWidget()
-        self.content_stack = QStackedLayout(self.content_area)
-        self.content_stack.setContentsMargins(0, 0, 0, 0)
+        self.content_stack = QStackedWidget()
+        self.content_stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.content_stack.addWidget(self.row_collapsed)
         self.content_stack.addWidget(self.list_tasks)
 
         layout.addWidget(self.header_widget)
-        layout.addWidget(self.content_area)
+        layout.addWidget(self.content_stack)
 
         self.setStyleSheet(
             """
@@ -234,10 +237,12 @@ class DisplayWindow(QWidget):
             """
         )
 
-        self.header_widget.setFixedHeight(self.header_widget.sizeHint().height())
-        self.row_collapsed.setFixedHeight(self.row_collapsed.sizeHint().height())
-        self._collapsed_content_height = self.row_collapsed.sizeHint().height()
-        self._expanded_content_height = 220
+        header_height = self.header_widget.sizeHint().height()
+        collapsed_height = self.row_collapsed.sizeHint().height()
+        self.header_widget.setFixedHeight(header_height)
+        self.row_collapsed.setFixedHeight(collapsed_height + 6)
+        self._collapsed_content_height = collapsed_height + 6
+        self._expanded_content_height = 240
 
     # -------------------------
     # interactions
@@ -256,7 +261,7 @@ class DisplayWindow(QWidget):
     def _apply_collapsed(self, collapsed: bool) -> None:
         self._collapsed = collapsed
         self.content_stack.setCurrentWidget(self.row_collapsed if collapsed else self.list_tasks)
-        self.content_area.setFixedHeight(
+        self.content_stack.setFixedHeight(
             self._collapsed_content_height if collapsed else self._expanded_content_height
         )
         self.btn_expand.setText("展开" if collapsed else "收起")
