@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Callable, List, Optional
 from datetime import date
-import json
 
 from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QAction, QFont
@@ -26,7 +25,7 @@ from PyQt6.QtWidgets import (
 
 from display_ui import Task
 from model import load_api_key, save_api_key, summarize_tasks
-from storage import get_archive_dir
+from storage import save_tasks_for_date, TaskRecord
 
 
 class EditorWindow(QWidget):
@@ -479,12 +478,8 @@ class EditorWindow(QWidget):
         QMessageBox.information(self, "已发布", "任务已发布到悬浮窗，并已刷新显示。")
 
     def _archive_tasks(self, tasks: List[Task]) -> None:
-        filename = f"{date.today().isoformat()}.json"
-        payload = [{"text": t.text, "done": t.done, "pinned": t.pinned} for t in tasks]
-        (get_archive_dir() / filename).write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        records = [TaskRecord(text=t.text, done=t.done, pinned=t.pinned) for t in tasks]
+        save_tasks_for_date(date.today(), records)
 
     # 可选：编辑页也支持拖动窗口（和展示窗一致）
     def mousePressEvent(self, event) -> None:

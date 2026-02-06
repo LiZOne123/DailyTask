@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-import json
-from pathlib import Path
 from typing import List, Optional, Callable
 
 from PyQt6.QtCore import Qt, QPoint
@@ -22,6 +20,7 @@ from PyQt6.QtWidgets import (
     QLayout,
 )
 
+from storage import save_tasks_for_date, TaskRecord
 
 @dataclass
 class Task:
@@ -375,14 +374,8 @@ class DisplayWindow(QWidget):
         self._refresh_all()
 
     def _archive_tasks(self) -> None:
-        archive_dir = Path(__file__).resolve().parent / "archive"
-        archive_dir.mkdir(parents=True, exist_ok=True)
-        filename = f"{date.today().isoformat()}.json"
-        payload = [{"text": t.text, "done": t.done, "pinned": t.pinned} for t in self.tasks]
-        (archive_dir / filename).write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        records = [TaskRecord(text=t.text, done=t.done, pinned=t.pinned) for t in self.tasks]
+        save_tasks_for_date(date.today(), records)
 
     # -------------------------
     # drag window

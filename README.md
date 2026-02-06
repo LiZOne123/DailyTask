@@ -1,5 +1,11 @@
 # DailyTask
 
+python 3.10.19
+
+```cmd
+pip install -r requirements.txt
+```
+
 程序测试图。
 
 ![1](./pics/1.png)

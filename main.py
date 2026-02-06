@@ -1,4 +1,3 @@
-import json
 import sys
 from datetime import date
 from typing import List
@@ -7,7 +6,7 @@ from PyQt6.QtWidgets import QApplication
 
 from display_ui import DisplayWindow, Task
 from editor_ui import EditorWindow
-from storage import get_archive_dir
+from storage import load_tasks_for_date
 
 
 class AppController:
@@ -81,25 +80,8 @@ def main() -> None:
 
 
 def _load_today_tasks() -> List[Task]:
-    archive_path = get_archive_dir() / f"{date.today().isoformat()}.json"
-    if not archive_path.exists():
-        return []
-    try:
-        raw = json.loads(archive_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return []
-    if not isinstance(raw, list):
-        return []
-    tasks: List[Task] = []
-    for item in raw:
-        if not isinstance(item, dict):
-            continue
-        text = item.get("text")
-        done = item.get("done", False)
-        pinned = item.get("pinned", False)
-        if isinstance(text, str):
-            tasks.append(Task(text=text, done=bool(done), pinned=bool(pinned)))
-    return tasks
+    records = load_tasks_for_date(date.today())
+    return [Task(text=r.text, done=r.done, pinned=r.pinned) for r in records]
 
 
 if __name__ == "__main__":

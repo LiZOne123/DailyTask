@@ -1,5 +1,7 @@
-archive/
-apikey.json
 build/
 dist/
-main.spec
+*.spec
+
+# Virtual environments
+.venv/
+venv/

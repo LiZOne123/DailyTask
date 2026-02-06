@@ -1,0 +1,2 @@
+﻿openai
+PyQt6

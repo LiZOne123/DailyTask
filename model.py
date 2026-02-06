@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 from openai import OpenAI
 
-from storage import get_api_key_path
+from storage import load_api_key as load_api_key_from_db
+from storage import save_api_key as save_api_key_to_db
 
 API_BASE_URL = "https://api.siliconflow.cn/v1"
 MODEL_NAME = "deepseek-ai/DeepSeek-V3.2"
@@ -42,27 +42,11 @@ class TaskPayload:
 
 
 def load_api_key() -> Optional[str]:
-    api_key_path = get_api_key_path()
-    if not api_key_path.exists():
-        return None
-    try:
-        data = json.loads(api_key_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return None
-    key = data.get("api_key") if isinstance(data, dict) else None
-    return key.strip() if isinstance(key, str) and key.strip() else None
+    return load_api_key_from_db()
 
 
 def save_api_key(api_key: str) -> None:
-    api_key_path = get_api_key_path()
-    api_key_path.write_text(
-        json.dumps({"api_key": api_key}, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    try:
-        os.chmod(api_key_path, 0o600)
-    except OSError:
-        pass
+    save_api_key_to_db(api_key)
 
 
 def summarize_tasks(user_input: str, api_key: str) -> Tuple[List[TaskPayload], str]:
